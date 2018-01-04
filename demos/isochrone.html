@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Isochrones</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <link rel="stylesheet" href="https://api.tiles.mapbox.com/mapbox-gl-js/v0.43.0/mapbox-gl.css" />
+</head>
+<body>
+  <div id="map" style="position:fixed;left:0;right:0;top:0;bottom:0;"></div>
+  <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.43.0/mapbox-gl.js"></script>
+  <script src="https://code.jquery.com/jquery-2.2.4.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script>
+
+  <script>
+  var map = new mapboxgl.Map({
+    container: 'map',
+    style: 'https://maps.dallasnews.com/styles.json',
+    center: [8.263943491499276, 46.84456398243461],
+    zoom: 7,
+    hash: true
+  });
+
+  map.addControl(new mapboxgl.NavigationControl());
+
+  map.on('load', function () {
+    map.on('click', function (e) {
+      console.group('Querying for ' + e.lngLat.lat + ', ' + e.lngLat.lng);
+
+      var mode = window.mode || 'auto';
+      console.log('Mode: ' + mode);
+
+      if (map.getLayer('drivetimes')) map.removeLayer('drivetimes');
+      if (map.getLayer('drivetime-labels')) map.removeLayer('drivetime-labels');
+      if (map.getSource('contours')) map.removeSource('contours');
+
+      var url = 'http://localhost:8002/isochrone?json=';
+      var json = {
+        locations: [{
+          lat: e.lngLat.lat,
+          lon: e.lngLat.lng
+        }],
+        costing: mode,
+        contours: [{
+          time: 15
+        }, {
+          time: 30
+        }, {
+          time: 60
+        }],
+        polygons: false,
+        denoise: .2,
+        generalize: 0
+      };
+      // map.flyTo({center: e.features[0].geometry.coordinates});
+      url += escape(JSON.stringify(json));
+
+      console.log('URL: ' + url);
+
+      $.getJSON(url, function(isochromes) {
+        console.log('Response:');
+        console.log(isochromes);
+
+        isochromes.features = isochromes.features.sort(function(feature) {
+          return feature.properties.opacity * -1;
+        });
+
+        map.addSource('contours', {
+          type: 'geojson',
+          data: isochromes
+        });
+
+        map.addLayer({
+          id: 'drivetimes',
+          type: 'line',
+          source: 'contours',
+          layout: {
+            'line-cap': 'round',
+            'line-join': 'round'
+          },
+          paint: {
+            'line-color': {
+              type: 'identity',
+              property: 'fillColor'
+            },
+            'line-width': 3
+          }
+        }, 'admin-3-4-boundaries-bg');
+
+        map.addLayer({
+          id: 'drivetime-labels',
+          type: 'symbol',
+          source: 'contours',
+          layout: {
+            'symbol-placement': 'line',
+            'symbol-avoid-edges': true,
+            'text-field': '{contour} min.',
+            'text-font': [
+              'Open Sans Bold',
+            ],
+            'text-size': 18,
+            'text-allow-overlap': true,
+            'text-pitch-alignment': 'viewport',
+            'text-rotation-alignment': 'viewport',
+          },
+          paint: {
+            'text-halo-color': '#fff',
+            'text-halo-width': 2,
+            'text-color': {
+              type: 'identity',
+              property: 'fillColor'
+            }
+          }
+        });
+
+        console.groupEnd();
+      });
+    });
+  });
+    // var map = L.map('map').setView([32.780142, -96.793822], 13);
+    // L.polyline([[41.21, 9.36], [41.24, 9.35], [41.23, 9.34]]).addTo(map).bindTooltip('Top tooltip following mouse', {sticky: true, direction: 'top'});
+    // var geojson = null;
+    // var tooltips = [];
+    // //use osm tiles
+    // L.tileLayer('http://b.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    //   maxZoom: 18
+    // }).addTo(map);
+    //
+    // //click callback
+    // function onMapClick(e) {
+    //   //build url
+    //   var url = 'http://localhost:8002/isochrone?json=';
+      // var json = {
+      //   locations: [{"lat":e.latlng.lat, "lon":e.latlng.lng}],
+      //   costing: "auto",
+      //   contours: [{"time":15},{"time":30},{"time":45},{"time":60}],
+      //   polygons: false,
+      //   denoise: .2,
+      //   generalize: 150
+      // };
+    //   url += escape(JSON.stringify(json));
+    //   //grab the url
+    //   $.getJSON(url,function(isochrones){
+    //     //clear this if its not null
+    //     if(geojson != null)
+    //       geojson.removeFrom(map);
+    //     //clear the tooltips
+    //     tooltips.forEach(function (tooltip) {
+    //       tooltip.removeFrom(map);
+    //     });
+    //     tooltips = [];
+    //     //create the geojson object
+    //     geojson = L.geoJson(isochrones, {
+    //       style: function(feature) {
+    //         return { opacity: feature.properties.opacity * 2,
+    //                  weight: 10,
+    //                  color: feature.properties.color
+    //                };
+    //       },
+    //       onEachFeature: function(feature, layer) {
+    //         var tooltip = layer.bindTooltip(feature.properties.contour + ' min', { sticky: true });
+    //         tooltips.push(tooltip);
+    //         tooltip.addTo(map);
+    //       }
+    //     });
+    //     //render the geojson
+    //     geojson.addTo(map);
+    //   })
+    // }
+    //
+    // //hook up the callback
+    // map.on('click', onMapClick);
+  </script>
+</body>
+</html>
