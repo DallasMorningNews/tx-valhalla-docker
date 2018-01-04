@@ -30,17 +30,11 @@ RUN valhalla_build_config \
   > valhalla.json
 
 # Build the routing tiles
-# TODO: run valhalla_build_admins?
 RUN mkdir tiles
 RUN valhalla_build_tiles -c valhalla.json extracts/*.osm.pbf
 
 # .tar up the files for running the server
 RUN find tiles | sort -n | tar cf tiles.tar --no-recursion -T -
-
-#grab the demos repo and open up the point and click routing sample
-# git clone --depth=1 --recurse-submodules --single-branch --branch=gh-pages https://github.com/valhalla/demos.git
-# firefox demos/routing/index-internal.html &
-#NOTE: set the environment pulldown to 'localhost' to point it at your own server
 
 # Start the Valhalla API server and make it available on 8002
 CMD valhalla_route_service valhalla.json 1
