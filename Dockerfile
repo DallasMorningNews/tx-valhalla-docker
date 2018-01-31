@@ -18,7 +18,20 @@ RUN curl http://download.geofabrik.de/north-america/us/texas-latest.osm.pbf \
 
 # NOTE: You can add additional region downloads here. Just repeat the above curl
 # command and save them to the extracts/ folder. Extracts are availalbe at:
-# http://download.geofabrik.de/
+# http://download.geofabrik.de/ For example, to load neighboring states:
+#
+# RUN curl http://download.geofabrik.de/north-america/us/new-mexico-latest.osm.pbf \
+#   --silent \
+#   --fail \
+#   --remote-name
+# RUN curl http://download.geofabrik.de/north-america/us/oklahoma-latest.osm.pbf \
+#   --silent \
+#   --fail \
+#   --remote-name
+# RUN curl http://download.geofabrik.de/north-america/us/louisiana-latest.osm.pbf \
+#   --silent \
+#   --fail \
+#   --remote-name
 
 # Use valhalla's config-building script to create a valhalla.json config file
 WORKDIR /valhalla_data
